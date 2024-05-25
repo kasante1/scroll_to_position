@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 void main() {
   runApp(MyApp());
@@ -23,12 +24,21 @@ class _SearchExampleState extends State<SearchExample> {
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey _textKey = GlobalKey();
   List<MatchInfo> _matches = [];
+  var index = 0;
+
+  Timer? _debounce;
 
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), _searchAndHighlight);
   }
 
   void _searchAndHighlight() {
@@ -42,104 +52,143 @@ class _SearchExampleState extends State<SearchExample> {
         String text = _textContent;
         RegExp regExp = RegExp(searchQuery, caseSensitive: false);
         Iterable<RegExpMatch> regExpMatches = regExp.allMatches(text);
+
+        double cumulativeHeight = 0.0;
+
         _matches = regExpMatches.map((match) {
+
           final textBeforeMatch = text.substring(0, match.start);
+
           final textPainter = TextPainter(
             text: TextSpan(text: textBeforeMatch),
             textDirection: TextDirection.ltr,
-          )..layout();
-          final offset = textPainter.height.clamp(0.0, totalHeight - textBox.size.height);
+          )..layout(maxWidth: textBox.size.width);
+          
+          cumulativeHeight += textPainter.height;
+
+          // final offset = cumulativeHeight.clamp(0.0, totalHeight - textBox.size.height);
+          final offset = textPainter.height;
           return MatchInfo(match.start, match.end, offset);
+
         }).toList();
       }
     });
   }
 
-  void _scrollToMatch(int index) {
+  void _scrollToMatch() {
     if (_matches.isNotEmpty && index < _matches.length) {
       final match = _matches[index];
+        
       _scrollController.animateTo(
         match.offset,
-        duration: Duration(seconds: 1),
+        duration: const Duration(milliseconds: 30),
         curve: Curves.easeInOut,
       );
+
     }
   }
 
-  String get _textContent => '''
-and providing some short definitions, which we will expand on later. (If you feel your eyes are glazing
-over, please skip this section and return to it later!) Yes, you may find the following descriptions a bit
-perplexing, but bear with us—we’ll go into more detail in just a bit:
-•••Currying is transforming an m-ary function (that is, a function of arity m) into a sequence of
-m unary functions, each receiving one argument of the original function, from left to right.
-(The first function receives the first argument of the original function and returns a second
-function, which receives the second argument and returns a third function, which receives the
-third argument, and so on.) Upon being called with an argument, each function produces the
-next one in the sequence, and the last one does the actual calculations.
-Partial application is providing n arguments to an m-ary function, with n less than or equal to m,
-to transform it into a function with (m-n) parameters. Each time you provide some arguments,
-a new function is produced, with smaller arity. When you provide the last arguments, the actual
-calculations are performed.
-Partial currying is a mixture of both preceding ideas: you provide n arguments (from left to
-right) to an m-ary function and produce a new function of arity (m-n). When this new function
-receives some other arguments, also from left to right, it will produce yet another function.
-When the last parameters are provided, the function produces the correct calculations.
-In this chapter, we will see these three transformations, what they require, and ways of implementing them.
-and providing some short definitions, which we will expand on later. (If you feel your eyes are glazing
-over, please skip this section and return to it later!) Yes, you may find the following descriptions a bit
-perplexing, but bear with us—we’ll go into more detail in just a bit:
-•••Currying is transforming an m-ary function (that is, a function of arity m) into a sequence of
-m unary functions, each receiving one argument of the original function, from left to right.
-(The first function receives the first argument of the original function and returns a second
-function, which receives the second argument and returns a third function, which receives the
-third argument, and so on.) Upon being called with an argument, each function produces the
-next one in the sequence, and the last one does the actual calculations.
-Partial application is providing n arguments to an m-ary function, with n less than or equal to m,
-to transform it into a function with (m-n) parameters. Each time you provide some arguments,
-a new function is produced, with smaller arity. When you provide the last arguments, the actual
-calculations are performed.
-Partial currying is a mixture of both preceding ideas: you provide n arguments (from left to
-right) to an m-ary function and produce a new function of arity (m-n). When this new function
-receives some other arguments, also from left to right, it will produce yet another function.
-When the last parameters are provided, the function produces the correct calculations.
-In this chapter, we will see these three transformations, what they require, and ways of implementing them
+    void _scrollToNext() {
+    if (_matches.isNotEmpty && index < _matches.length) {
+      final match = _matches[index];
+      print('next matched queries, ${match.offset}');
 
-and providing some short definitions, which we will expand on later. (If you feel your eyes are glazing
-over, please skip this section and return to it later!) Yes, you may find the following descriptions a bit
-perplexing, but bear with us—we’ll go into more detail in just a bit:
-•••Currying is transforming an m-ary function (that is, a function of arity m) into a sequence of
-m unary functions, each receiving one argument of the original function, from left to right.
-(The first function receives the first argument of the original function and returns a second
-function, which receives the second argument and returns a third function, which receives the
-third argument, and so on.) Upon being called with an argument, each function produces the
-next one in the sequence, and the last one does the actual calculations.
-Partial application is providing n arguments to an m-ary function, with n less than or equal to m,
-to transform it into a function with (m-n) parameters. Each time you provide some arguments,
-a new function is produced, with smaller arity. When you provide the last arguments, the actual
-calculations are performed.
-Partial currying is a mixture of both preceding ideas: you provide n arguments (from left to
-right) to an m-ary function and produce a new function of arity (m-n). When this new function
-receives some other arguments, also from left to right, it will produce yet another function.
-When the last parameters are provided, the function produces the correct calculations.
-In this chapter, we will see these three transformations, what they require, and ways of implementing them.
-and providing some short definitions, which we will expand on later. (If you feel your eyes are glazing
-over, please skip this section and return to it later!) Yes, you may find the following descriptions a bit
-perplexing, but bear with us—we’ll go into more detail in just a bit:
-•••Currying is transforming an m-ary function (that is, a function of arity m) into a sequence of
-m unary functions, each receiving one argument of the original function, from left to right.
-(The first function receives the first argument of the original function and returns a second
-function, which receives the second argument and returns a third function, which receives the
-third argument, and so on.) Upon being called with an argument, each function produces the
-next one in the sequence, and the last one does the actual calculations.
-Partial application is providing n arguments to an m-ary function, with n less than or equal to m,
-to transform it into a function with (m-n) parameters. Each time you provide some arguments,
-a new function is produced, with smaller arity. When you provide the last arguments, the actual
-calculations are performed.
-Partial currying is a mixture of both preceding ideas: you provide n arguments (from left to
-right) to an m-ary function and produce a new function of arity (m-n). When this new function
-receives some other arguments, also from left to right, it will produce yet another function.
-When the last parameters are provided, the function produces the correct calculations.
-In this chapter, we will see these three transformations, what they require, and ways of implementing them''';
+      _scrollController.animateTo(
+        match.offset,
+        duration: const Duration(milliseconds: 30),
+        curve: Curves.easeInOut,
+      );
+      index++;
+    }
+  }
+
+      void _scrollToPrev() {
+    if (_matches.isNotEmpty && index != 0) {
+      index--;
+      final match = _matches[index];
+      print('prev matched queries, ${match.offset}');
+
+
+      _scrollController.animateTo(
+        match.offset,
+        duration: const Duration(milliseconds: 30),
+        curve: Curves.easeInOut,
+      );
+
+    }
+  }
+
+  String get _textContent => '''An interface is something really simple but powerful. It's usually defined as a contract
+between the objects that implements it but this explanation isn't clear enough in my honest
+opinion for newcomers to interface world.
+A water-pipe is a contract too; whatever you pass through it must be a liquid. Anyone can
+use the pipe, and the pipe will transport whatever liquid you put in it (without knowing the
+content). The water-pipe is the Interface that enforces that the users must pass liquids (and
+not something else).
+Lets think in another example: a train. The railroads of a train are like an interface. A train
+must construct (implement) its width with a specified value so that it can enter the railroad
+but the railroad never knows exactly what's carrying (passengers or cargo). So for example
+an interface of the railroad will have the following aspect:
+Debugging pipelines
+Now, let’s turn to a practical question: how do you debug your code? With pipelining, you can’t see
+what’s passed on from function to function, so how do you do it? We have two answers for that: one
+(also) comes from the Unix/Linux world, and the other (the most appropriate for this book) uses
+wrappers to provide some logs.
+Using tee
+The first solution we’ll use implies adding a function to the pipeline, which will just log its input. We
+want to implement something similar to the tee Linux command, which can intercept the standard
+data flow in a pipeline and send a copy to an alternate file or device. Remembering that /dev/tty
+is the usual console, we could execute something similar to the following and get an onscreen copy
+of everything that passes using the tee command:
+Debugging pipelines
+Now, let’s turn to a practical question: how do you debug your code? With pipelining, you can’t see
+what’s passed on from function to function, so how do you do it? We have two answers for that: one
+(also) comes from the Unix/Linux world, and the other (the most appropriate for this book) uses
+wrappers to provide some logs.
+Using tee
+The first solution we’ll use implies adding a function to the pipeline, which will just log its input. We
+want to implement something similar to the tee Linux command, which can intercept the standard
+data flow in a pipeline and send a copy to an alternate file or device. Remembering that /dev/tty
+is the usual console, we could execute something similar to the following and get an onscreen copy
+of everything that passes using the tee command:
+constructed by ManufacturingDirector.
+type BikeBuilder struct {
+v VehicleProduct
+}
+func (b *BikeBuilder) SetWheels() BuildProcess {
+b.v.Wheels = 2
+return b
+}
+func (b *BikeBuilder) SetSeats() BuildProcess {
+b.v.Seats = 2
+return b
+}
+func (b *BikeBuilder) SetStructure() BuildProcess {
+b.v.Structure = "Motorbike"
+return b
+}
+func (b *BikeBuilder) GetVehicle() VehicleProduct {
+return b.v
+}
+The Motorbike Builder is the same as the car builder. We defined a motorbike to have two
+wheels, two seats, and a structure called Motorbike. It's very similar to the car object, but
+imagine that you want to differentiate between a sports motorbike (with only one seat) and
+a cruise motorbike (with two seats). You could simply create a new structure for sport
+motorbikes that implements the build process.
+You can see that it's a repetitive pattern, but within the scope of every method of the
+BuildProcess interface, you could encapsulate as much complexity as you want such that
+the user need not know the details about the object creation.
+With the definition of all objects, lets run the tests again:
+=== RUN
+ TestBuilderPattern
+--- PASS: TestBuilderPattern (0.00s)
+PASS
+ok _/home/mcastro/pers/go-design-patterns/creational 0.001s
+Well done! Think how easy it could be to add new vehicles to the
+ManufacturingDirector director just create a new class encapsulating the data for the
+new vehicle. For example, let ́s add a BusBuilder struct:
+type BusBuilder struct {
+''';
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +209,7 @@ In this chapter, we will see these three transformations, what they require, and
                   onPressed: _searchAndHighlight,
                 ),
               ),
+              onChanged: (_) => _onSearchChanged(),
               onSubmitted: (_) => _searchAndHighlight(),
             ),
           ),
@@ -174,19 +224,15 @@ In this chapter, we will see these three transformations, what they require, and
             ),
           ),
           if (_matches.isNotEmpty)
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _matches.length,
-                itemBuilder: (context, index) {
-                  return ElevatedButton(
-                    onPressed: () => _scrollToMatch(index),
-                    child: Text('Match ${index + 1}'),
-                  );
-                },
-              ),
-            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+               searchNavigationButton(()=>_scrollToPrev(), 'Previous'),
+               sized
+               searchNavigationButton(()=>_scrollToNext(), 'Next')
+
+              ],
+            )
         ],
       ),
     );
@@ -236,4 +282,9 @@ class MatchInfo {
   MatchInfo(this.start, this.end, this.offset);
 }
 
-
+ElevatedButton searchNavigationButton(void Function() onPressed, String buttonLabel) {
+  return ElevatedButton(
+    onPressed: onPressed,
+    child: Text(buttonLabel),
+  );
+}
